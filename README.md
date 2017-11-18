@@ -1,24 +1,71 @@
-# README
+# Testing JSONAPI
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Introduction
 
-Things you may want to cover:
+This is a reference repo to aid with the comprehension of working with JSONAPI and the JSONAPI:Resources gem.
 
-* Ruby version
+## Stack
 
-* System dependencies
+- Rails 5.1.3 (postgres and API)
+- RSpec
 
-* Configuration
+## Setup
 
-* Database creation
+Install Rails project
 
-* Database initialization
+`rails new json-api-tests --api --database=postgresql`
 
-* How to run the test suite
+Install RSpec & spring commands (for binstubs)
 
-* Services (job queues, cache servers, search engines, etc.)
+Gemfile
+```ruby
+group :development, :test do
+  gem 'rspec-rails', '~> 3.7', '>= 3.7.1'
+end
 
-* Deployment instructions
+group :development do
+  gem 'spring-commands-rspec', '~> 1.0', '>= 1.0.4'
+end
+```
 
-* ...
+`bundle`
+`bin/rails generate rspec:install`
+`bundle exec spring binstub rspec`
+
+Customise RSpec a little
+
+.rspec
+```ruby
+--require spec_helper
+--format documentation
+```
+
+config/application.rb
+```ruby
+module JsonApiTests
+  class Application < Rails::Application
+    # Initialize configuration defaults for originally generated Rails version.
+    config.load_defaults 5.1
+
+    # Settings in config/environments/* take precedence over those specified here.
+    # Application configuration should go into files in config/initializers
+    # -- all .rb files in that directory are automatically loaded.
+    config.generators do |g|
+      g.test_framework :rspec,
+        fixtures: false,
+        view_specs: false,
+        helper_specs: false,
+        routing_specs: false
+    end
+    # Only loads a smaller set of middleware suitable for API only apps.
+    # Middleware like session, flash, cookies can be added back manually.
+    # Skip views, helpers and assets when generating a new resource.
+    config.api_only = true
+  end
+end
+```
+
+
+Setup Databases
+
+`bin/rails db:create:all`
