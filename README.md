@@ -11,11 +11,11 @@ This is a reference repo to aid with the comprehension of working with JSONAPI a
 
 ## Setup
 
-Install Rails project
+### Install Rails project
 
 `rails new json-api-tests --api --database=postgresql`
 
-Install RSpec & spring commands (for binstubs)
+### Install RSpec & spring commands (for binstubs)
 
 Gemfile
 ```ruby
@@ -65,7 +65,55 @@ module JsonApiTests
 end
 ```
 
+Finally delete the redundant `test` directory.
 
-Setup Databases
+### Setup Databases
 
 `bin/rails db:create:all`
+
+## Testing Models
+
+Generated model using generators
+
+`rails g model schedule name current_position:integer`
+
+Add default value into Migration
+
+```ruby
+class CreateSchedules < ActiveRecord::Migration[5.1]
+  def change
+    create_table :schedules do |t|
+      t.string :name
+      t.integer :current_position, default: 0
+
+      t.timestamps
+    end
+  end
+end
+```
+
+Then need to make sure database is prepared with
+
+`bin/rails db:test:prepare`
+
+Now Rspec tests should pass like
+
+```ruby
+require 'rails_helper'
+
+RSpec.describe Schedule, type: :model do
+  it "is valid with a name" do
+    schedule = Schedule.new(
+      name: "Orange Gardens Radio"
+    )
+    expect(schedule).to be_valid
+  end
+
+  it "has a current_position of 0" do
+    schedule = Schedule.new(
+      name: "Orange Gardens Radio"
+    )
+    expect(schedule.current_position).to be_zero
+  end
+end
+```
