@@ -44,4 +44,17 @@ RSpec.describe "Schedules", type: :request do
       expect(json).to be_json_eql(attributes).at_path("data/1/attributes")
     end
   end
+
+  describe "GET /api/v1/schedules/id" do
+    it "should use the slug as the id" do
+      Schedule.create(name: "Test With Spaces")
+      get "/api/v1/schedules/test-with-spaces"
+      expect(response).to have_http_status(200)
+      expect(response.content_type).to eq("application/vnd.api+json")
+      json = response.body
+      expect(json).to have_json_path("data")
+      expect(json).to be_json_eql(%("test-with-spaces")).at_path("data/id")
+      expect(json).to be_json_eql(response.request.url.to_json).at_path("data/links/self")
+    end
+  end
 end

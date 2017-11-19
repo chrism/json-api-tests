@@ -293,3 +293,71 @@ end
 ```
 
 These specs use some of those matchers to ensure that the JSON returned from the requests is correct.
+
+## Adding slugs to a Model
+
+Using the [Friendly ID](https://github.com/norman/friendly_id/) gem to generate slugs instead of IDs.
+
+Gemfile
+```ruby
+gem 'friendly_id', '~> 5.1'
+```
+
+Then follow the guide by installing the configuration file
+
+`rails generate friendly_id`
+
+And running the migration
+
+`rails db:migrate`
+
+(May need to add the version number to migration file [see the note](https://github.com/norman/friendly_id/#usage) in the install instructions)
+
+Now, using the gem to update the model to use a slug from the name.
+
+app/models/schedule.rb
+```ruby
+class Schedule < ApplicationRecord
+  extend FriendlyId
+  friendly_id :name, use: :slugged
+end
+```
+
+There needs to be a slug column in the Schedules table too.
+
+`rails g migration AddSlugToSchedules slug:string:uniq`
+
+Then run the migration.
+
+`bin/rails db:migrate`
+
+## Using Slug for an id
+
+These slugs can be used as the id of the JSONAPI models now, instead of the id integer.
+
+Here is a test in the schedules request spec to test for the use of the slug as the id.
+
+spec/requests/schedules_spec.rb
+```ruby
+describe "GET /api/v1/schedules/id" do
+  it "should use the slug as the id" do
+    Schedule.create(name: "Test With Spaces")
+    get "/api/v1/schedules/test-with-spaces"
+    expect(response).to have_http_status(200)
+    expect(response.content_type).to eq("application/vnd.api+json")
+    expect(response.body).to have_json_path("data")
+    expect(response.body).to be_json_eql(%("test-with-spaces")).at_path("data/id")
+  end
+end
+```
+
+To make this test pass, the schedules resource must use the slug as the `primary_key` as [documented](http://jsonapi-resources.com/v0.10/guide/resources.html#Primary-Key).
+
+app/resources/api/v1/schedule_resource.rb
+```ruby
+class Api::V1::ScheduleResource < JSONAPI::Resource
+  primary_key :slug
+  key_type :string
+  attributes :name, :current_position
+end
+```
