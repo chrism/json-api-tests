@@ -34,6 +34,7 @@ group :development, :test do
   gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
 
   gem 'rspec-rails', '~> 3.7', '>= 3.7.1'
+  gem 'json_spec', '~> 1.1', '>= 1.1.5'
 end
 
 group :development do

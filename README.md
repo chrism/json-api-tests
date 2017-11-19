@@ -162,3 +162,134 @@ Tests should still pass when running
 And hitting the URL should now return a valid JSONAPI response (the [JSON API](http://jsonapi.org/) spec requires request to [include the `Content-type: application/vnd.api+json` in the header](http://jsonapi.org/format/#content-negotiation-clients)).
 
 `curl "http://0.0.0.0:3000/api/v1/schedules" -H 'Content-Type: application/vnd.api+json'`
+
+## Testing a JSONAPI model
+
+First lets see what a valid response looks like with a model
+
+`bin/rails c`
+`Schedule.create(name: 'Test')`
+
+Then hitting the same URL should return the model in an array.
+
+I like to use an application called [Paw](https://paw.cloud/) to investigate how an API works, it makes it very simple to test requests and their responses in easy to view formats.
+
+In this instance the response follows the standard JSON API format with a top-level member of `data`, followed in this instance with an array of `schedule` models (in this case one).
+
+```json
+{
+  "data": [
+    {
+      "id": "2",
+      "type": "schedules",
+      "links": {
+        "self": "http://0.0.0.0:3000/api/v1/schedules/2"
+      }
+    }
+  ]
+}
+```
+
+This includes the minimum compliant information. Every JSON API object [must have] an `id` and `type`(http://jsonapi.org/format/#document-resource-objects). The `self` link is good practice as a reference to get the URL of that specific model and is included by default, too.
+
+To get additional data attributes are used by JSONAPI:Resources, which match the approach of the spec.
+
+Adding to the Schedule resource
+
+app/resources/api/v1/schedule_resource.rb
+```ruby
+class Api::V1::ScheduleResource < JSONAPI::Resource
+  attributes :name, :current_position
+end
+```
+
+Results now in a response with those attributes included
+
+```json
+{
+  "data": [
+    {
+      "id": "2",
+      "type": "schedules",
+      "links": {
+        "self": "http://0.0.0.0:3000/api/v1/schedules/2"
+      },
+      "attributes": {
+        "name": "Test",
+        "current-position": 0
+      }
+    }
+  ]
+}
+```
+
+Automated tests to check the responses are correct can be very useful.
+
+RSpec includes [request specs](https://relishapp.com/rspec/rspec-rails/docs/request-specs/request-spec) to help with this.
+
+Generate a request spec for schedules with
+
+`bin/rails g rspec:request schedules`
+
+There is another gem called [JSON RSpec](https://github.com/collectiveidea/json_spec) which provides some useful RSpec matchers (among other things).
+
+Gemfile
+```ruby
+group :development, :test do
+  ...
+  gem 'json_spec', '~> 1.1', '>= 1.1.5'
+end
+```
+
+spec/requests/schedules_spec.rb
+```ruby
+require 'rails_helper'
+
+RSpec.describe "Schedules", type: :request do
+  describe "GET /api/v1/schedules" do
+    it "has correct status and content type" do
+      get "/api/v1/schedules"
+      expect(response).to have_http_status(200)
+      expect(response.content_type).to eq("application/vnd.api+json")
+    end
+
+    it "has empty body array by default" do
+      get "/api/v1/schedules"
+      json = response.body
+      expect(json).to have_json_path("data")
+      expect(json).to have_json_size(0).at_path("data")
+    end
+
+    it "includes a schedule model when added" do
+      Schedule.create(name: "Test")
+      get "/api/v1/schedules"
+      json = response.body
+      expect(json).to have_json_path("data")
+      expect(json).to have_json_size(1).at_path("data")
+      expect(json).to have_json_path("data/0/id")
+      attributes = %({
+        "name": "Test",
+        "current-position": 0
+      })
+      expect(response.body).to be_json_eql(attributes).at_path("data/0/attributes")
+    end
+
+    it "includes two schedule models when added" do
+      Schedule.create(name: "Test")
+      Schedule.create(name: "Test 2")
+      get "/api/v1/schedules"
+      json = response.body
+      expect(json).to have_json_path("data")
+      expect(json).to have_json_size(2).at_path("data")
+      expect(json).to have_json_path("data/1/id")
+      attributes = %({
+        "name": "Test 2",
+        "current-position": 0
+      })
+      expect(json).to be_json_eql(attributes).at_path("data/1/attributes")
+    end
+  end
+end
+```
+
+These specs use some of those matchers to ensure that the JSON returned from the requests is correct.
