@@ -56,5 +56,17 @@ RSpec.describe "Schedules", type: :request do
       expect(json).to be_json_eql(%("test-with-spaces")).at_path("data/id")
       expect(json).to be_json_eql(response.request.url.to_json).at_path("data/links/self")
     end
+
+    it "includes the scheduled tracks links" do
+      schedule = Schedule.create(name: "Test")
+      ScheduledTrack.create(position: 1, schedule: schedule)
+      ScheduledTrack.create(position: 2, schedule: schedule)
+      get "/api/v1/schedules/test"
+      json = response.body
+      url_prepend = response.request.url
+      expect(json).to have_json_path("data/relationships")
+      expect(json).to be_json_eql(%("#{url_prepend}/relationships/scheduled-tracks")).at_path("data/relationships/scheduled-tracks/links/self")
+      expect(json).to be_json_eql(%("#{url_prepend}/scheduled-tracks")).at_path("data/relationships/scheduled-tracks/links/related")
+    end
   end
 end

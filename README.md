@@ -345,8 +345,10 @@ describe "GET /api/v1/schedules/id" do
     get "/api/v1/schedules/test-with-spaces"
     expect(response).to have_http_status(200)
     expect(response.content_type).to eq("application/vnd.api+json")
-    expect(response.body).to have_json_path("data")
-    expect(response.body).to be_json_eql(%("test-with-spaces")).at_path("data/id")
+    json = response.body
+    expect(json).to have_json_path("data")
+    expect(json).to be_json_eql(%("test-with-spaces")).at_path("data/id")
+    expect(json).to be_json_eql(response.request.url.to_json).at_path("data/links/self")
   end
 end
 ```
@@ -359,5 +361,223 @@ class Api::V1::ScheduleResource < JSONAPI::Resource
   primary_key :slug
   key_type :string
   attributes :name, :current_position
+end
+```
+
+The model now uses the slug as the primary key.
+
+## Adding a has_many relationship
+
+In this example a schedule can have many scheduled_tracks. Each scheduled_track belongs to a schedule.
+
+`bin/rails g model scheduled_track position:integer state schedule:belongs_to`
+
+The state should have a default value of `queued`, so this can be added to the migration before it is run.
+
+```ruby
+class CreateScheduledTracks < ActiveRecord::Migration[5.1]
+  def change
+    create_table :scheduled_tracks do |t|
+      t.integer :position
+      t.string :state, default: 'queued'
+      t.belongs_to :schedule, foreign_key: true
+
+      t.timestamps
+    end
+  end
+end
+```
+
+Then add a JSONAPI resource and controller for `scheduled_tracks`
+
+```bash
+bin/rails g jsonapi:resource api/v1/scheduled_track
+bin/rails g jsonapi:controller api/v1/scheduled_track
+```
+
+To include the has many relationship at it's most basic the relationship can be added to the `schedule` model.
+
+app/models/schedule.rb
+```ruby
+class Schedule < ApplicationRecord
+  #...
+  has_many :scheduled_tracks
+end
+```
+
+and the `schedule` resource
+
+```ruby
+class Api::V1::ScheduleResource < JSONAPI::Resource
+  #...
+  has_many :scheduled_tracks
+end
+```
+
+By adding a couple of `schedule_track` models via the console to the development database these API relationships can be reviewed.
+
+```bash
+bin/rails c
+ScheduledTrack.create(position: 1, schedule: Schedule.first)
+ScheduledTrack.create(position: 2, schedule: Schedule.first)
+exit
+```
+
+Now, a request to the API for a schedule will include the schedule_tracks too.
+
+`curl "http://0.0.0.0:3000/api/v1/schedules/test" -H 'Content-Type: application/vnd.api+json'`
+
+```json
+{
+  "data": {
+    "id": "test",
+    "type": "schedules",
+    "links": {
+      "self": "http://0.0.0.0:3000/api/v1/schedules/test"
+    },
+    "attributes": {
+      "name": "Test",
+      "current-position": 0
+    },
+    "relationships": {
+      "scheduled-tracks": {
+        "links": {
+          "self": "http://0.0.0.0:3000/api/v1/schedules/test/relationships/scheduled-tracks",
+          "related": "http://0.0.0.0:3000/api/v1/schedules/test/scheduled-tracks"
+        }
+      }
+    }
+  }
+}
+```
+
+By default there are only the links included in the response.
+
+Following the `self` link works but the `related` link leads to an error.
+
+This can be resolved by also including the `schedule_tracks` to the routes configuration.
+
+config/routes.rb
+```ruby
+Rails.application.routes.draw do
+  namespace :api do
+    namespace :v1 do
+      jsonapi_resources :schedules
+      jsonapi_resources :scheduled_tracks
+    end
+  end
+end
+```
+
+This now makes it possible to follow the links to a specific `schedule_track`
+
+`curl "http://0.0.0.0:3000/api/v1/schedule-tracks/1" -H 'Content-Type: application/vnd.api+json'`
+
+```json
+{
+  "data": {
+    "id": "1",
+    "type": "scheduled-tracks",
+    "links": {
+      "self": "http://0.0.0.0:3000/api/v1/scheduled-tracks/1"
+    }
+  }
+}
+```
+
+As before the way to include additional information for the model is to add attributes to the resource.
+
+app/resources/api/v1/scheduled_track_resource.rb
+```ruby
+class Api::V1::ScheduledTrackResource < JSONAPI::Resource
+  attributes :position, :state
+end
+```
+
+Now the response includes those attributes
+
+```json
+{
+  "data": {
+    "id": "1",
+    "type": "scheduled-tracks",
+    "links": {
+      "self": "http://0.0.0.0:3000/api/v1/scheduled-tracks/1"
+    },
+    "attributes": {
+      "position": 1,
+      "state": "queued"
+    }
+  }
+}
+```
+
+Writing some RSpec tests once again ensure the correct responses.
+
+First some simple model specs
+
+spec/models/scheduled_track_spec.rb
+```ruby
+require 'rails_helper'
+
+RSpec.describe ScheduledTrack, type: :model do
+  let!(:schedule) { Schedule.create(name: 'test') }
+
+  it "is valid with a position" do
+    scheduled_track = ScheduledTrack.new(
+      position: 1,
+      schedule: schedule
+    )
+    expect(scheduled_track).to be_valid
+  end
+
+  it "has a state of queued" do
+    scheduled_track = ScheduledTrack.new(
+      position: 1,
+      schedule: schedule
+    )
+    expect(scheduled_track.state).to eq "queued"
+  end
+end
+```
+
+Then some additional specs to the request specs to ensure the `schedule` includes the links to the `scheduled_tracks`.
+
+spec/requests/schedules_spec.rb
+```ruby
+it "includes the scheduled tracks links" do
+  schedule = Schedule.create(name: "Test")
+  ScheduledTrack.create(position: 1, schedule: schedule)
+  ScheduledTrack.create(position: 2, schedule: schedule)
+  get "/api/v1/schedules/test"
+  json = response.body
+  url_prepend = response.request.url
+  expect(json).to have_json_path("data/relationships")
+  expect(json).to be_json_eql(%("#{url_prepend}/relationships/scheduled-tracks")).at_path("data/relationships/scheduled-tracks/links/self")
+  expect(json).to be_json_eql(%("#{url_prepend}/scheduled-tracks")).at_path("data/relationships/scheduled-tracks/links/related")
+end
+```
+
+And create a scheduled_track request spec
+
+`bin/rails g rspec:request scheduled_tracks`
+
+```ruby
+require 'rails_helper'
+
+RSpec.describe "ScheduledTracks", type: :request do
+  describe "GET /scheduled-tracks/:id" do
+    it "should return the position and default state" do
+      schedule_track = ScheduledTrack.create(position: 1, schedule: Schedule.create(name: 'Test'))
+      get "/api/v1/scheduled-tracks/#{schedule_track.id}"
+      expect(response).to have_http_status(200)
+      expect(response.content_type).to eq("application/vnd.api+json")
+      attributes = %({
+        "position": 1,
+        "state": "queued"
+      })
+      expect(response.body).to be_json_eql(attributes).at_path("data/attributes")
+    end
+  end
 end
 ```

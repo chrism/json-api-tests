@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171119171910) do
+ActiveRecord::Schema.define(version: 20171119203601) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -27,6 +27,15 @@ ActiveRecord::Schema.define(version: 20171119171910) do
     t.index ["sluggable_type"], name: "index_friendly_id_slugs_on_sluggable_type"
   end
 
+  create_table "scheduled_tracks", force: :cascade do |t|
+    t.integer "position"
+    t.string "state", default: "queued"
+    t.bigint "schedule_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["schedule_id"], name: "index_scheduled_tracks_on_schedule_id"
+  end
+
   create_table "schedules", force: :cascade do |t|
     t.string "name"
     t.integer "current_position", default: 0
@@ -36,4 +45,5 @@ ActiveRecord::Schema.define(version: 20171119171910) do
     t.index ["slug"], name: "index_schedules_on_slug", unique: true
   end
 
+  add_foreign_key "scheduled_tracks", "schedules"
 end
