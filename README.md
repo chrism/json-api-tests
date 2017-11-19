@@ -581,3 +581,188 @@ RSpec.describe "ScheduledTracks", type: :request do
   end
 end
 ```
+
+## Customising a has many relationship
+
+To include the relationship side-loaded into the JSON response the JSONAPI convention is to include in the request an `include` parameter.
+
+`curl "http://0.0.0.0:3000/api/v1/schedules/test?include=scheduled-tracks" -H 'Content-Type: application/vnd.api+json'`
+
+Which returns a response including all of the related `scheduled_tracks`
+
+```json
+{
+  "data": {
+    "id": "test",
+    "type": "schedules",
+    "links": {
+      "self": "http://0.0.0.0:3000/api/v1/schedules/test"
+    },
+    "attributes": {
+      "name": "Test",
+      "current-position": 0
+    },
+    "relationships": {
+      "scheduled-tracks": {
+        "links": {
+          "self": "http://0.0.0.0:3000/api/v1/schedules/test/relationships/scheduled-tracks",
+          "related": "http://0.0.0.0:3000/api/v1/schedules/test/scheduled-tracks"
+        },
+        "data": [
+          {
+            "type": "scheduled-tracks",
+            "id": "1"
+          },
+          {
+            "type": "scheduled-tracks",
+            "id": "2"
+          },
+          {
+            "type": "scheduled-tracks",
+            "id": "3"
+          },
+          {
+            "type": "scheduled-tracks",
+            "id": "4"
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "id": "1",
+      "type": "scheduled-tracks",
+      "links": {
+        "self": "http://0.0.0.0:3000/api/v1/scheduled-tracks/1"
+      },
+      "attributes": {
+        "position": 1,
+        "state": "played"
+      }
+    },
+    {
+      "id": "2",
+      "type": "scheduled-tracks",
+      "links": {
+        "self": "http://0.0.0.0:3000/api/v1/scheduled-tracks/2"
+      },
+      "attributes": {
+        "position": 2,
+        "state": "played"
+      }
+    },
+    {
+      "id": "3",
+      "type": "scheduled-tracks",
+      "links": {
+        "self": "http://0.0.0.0:3000/api/v1/scheduled-tracks/3"
+      },
+      "attributes": {
+        "position": 3,
+        "state": "playing"
+      }
+    },
+    {
+      "id": "4",
+      "type": "scheduled-tracks",
+      "links": {
+        "self": "http://0.0.0.0:3000/api/v1/scheduled-tracks/4"
+      },
+      "attributes": {
+        "position": 4,
+        "state": "queued"
+      }
+    }
+  ]
+}
+```
+
+This is very powerful, but sometimes you only want to include a specific result set in the response.
+
+There are several ways of doing this, for example—to only show scheduled-tracks which have not been played first add a scope to the `Schedule` model
+
+app/models/schedule.rb
+```ruby
+class Schedule < ApplicationRecord
+  #...
+  has_many :forthcoming_tracks, -> { where(state: ['playing','next','queued']) }, class_name: "ScheduledTrack"
+end
+```
+
+Then update the resource to include this relationship
+
+```ruby
+class Api::V1::ScheduleResource < JSONAPI::Resource
+  #...
+  has_many "forthcoming_tracks", class_name: 'ScheduledTracks', relation_name: :forthcoming_tracks
+end
+```
+
+Make sure to update the `include` parameter too to `forthcoming-tracks` and the results will now only include the `ActiveQuery` results.
+
+`curl "http://0.0.0.0:3000/api/v1/schedules/test?include=forthcoming-tracks" -H 'Content-Type: application/vnd.api+json'`
+
+```json
+{
+  "data": {
+    "id": "test",
+    "type": "schedules",
+    "links": {
+      "self": "http://0.0.0.0:3000/api/v1/schedules/test"
+    },
+    "attributes": {
+      "name": "Test",
+      "current-position": 0
+    },
+    "relationships": {
+      "forthcoming-tracks": {
+        "links": {
+          "self": "http://0.0.0.0:3000/api/v1/schedules/test/relationships/forthcoming-tracks",
+          "related": "http://0.0.0.0:3000/api/v1/schedules/test/forthcoming-tracks"
+        },
+        "data": [
+          {
+            "type": "scheduled-tracks",
+            "id": "3"
+          },
+          {
+            "type": "scheduled-tracks",
+            "id": "4"
+          }
+        ]
+      },
+      "scheduled-tracks": {
+        "links": {
+          "self": "http://0.0.0.0:3000/api/v1/schedules/test/relationships/scheduled-tracks",
+          "related": "http://0.0.0.0:3000/api/v1/schedules/test/scheduled-tracks"
+        }
+      }
+    }
+  },
+  "included": [
+    {
+      "id": "3",
+      "type": "scheduled-tracks",
+      "links": {
+        "self": "http://0.0.0.0:3000/api/v1/scheduled-tracks/3"
+      },
+      "attributes": {
+        "position": 3,
+        "state": "playing"
+      }
+    },
+    {
+      "id": "4",
+      "type": "scheduled-tracks",
+      "links": {
+        "self": "http://0.0.0.0:3000/api/v1/scheduled-tracks/4"
+      },
+      "attributes": {
+        "position": 4,
+        "state": "queued"
+      }
+    }
+  ]
+}
+```
