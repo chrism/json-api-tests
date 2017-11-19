@@ -98,6 +98,7 @@ Then need to make sure database is prepared with
 
 Now Rspec tests should pass like
 
+spec/models/schedule_spec.rb
 ```ruby
 require 'rails_helper'
 
@@ -117,3 +118,47 @@ RSpec.describe Schedule, type: :model do
   end
 end
 ```
+
+## Creating a JSONAPI
+
+Using [JSONAPI::Resources](http://jsonapi-resources.com/)
+
+Install latest version with
+
+Gemfile
+```ruby
+# Latest alpha from master on 14th November 2017
+gem 'jsonapi-resources', :git => 'https://github.com/cerebris/jsonapi-resources.git', :ref => '3a02a4d'
+```
+
+`bundle`
+
+Then we create a Resource and Controller as per the guides.
+
+It is good practice to namespace the API, which you can do when using the generators.
+
+`rails g jsonapi:controller api/v1/schedule`
+`rails g jsonapi:resource api/v1/schedule`
+
+The resource also needs to be added to the routes.
+
+config/routes.rb
+```ruby
+Rails.application.routes.draw do
+
+  namespace :api do
+    namespace :v1 do
+      jsonapi_resources :schedules
+    end
+  end
+
+end
+```
+
+Tests should still pass when running
+
+`bin/rspec`
+
+And hitting the URL should now return a valid JSONAPI response (the [JSON API](http://jsonapi.org/) spec requires request to [include the `Content-type: application/vnd.api+json` in the header](http://jsonapi.org/format/#content-negotiation-clients)).
+
+`curl "http://0.0.0.0:3000/api/v1/schedules" -H 'Content-Type: application/vnd.api+json'`

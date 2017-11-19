@@ -1,3 +1,13 @@
+GIT
+  remote: https://github.com/cerebris/jsonapi-resources.git
+  revision: 3a02a4d2e149d114da6e3d6a94d9495cad7f60da
+  ref: 3a02a4d
+  specs:
+    jsonapi-resources (0.10.0.pre)
+      activerecord (>= 4.1)
+      concurrent-ruby
+      railties (>= 4.1)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -143,6 +153,7 @@ PLATFORMS
 
 DEPENDENCIES
   byebug
+  jsonapi-resources!
   listen (>= 3.0.5, < 3.2)
   pg (~> 0.18)
   puma (~> 3.7)
