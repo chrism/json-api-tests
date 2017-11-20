@@ -6,12 +6,12 @@
 - [Stack](https://github.com/chrism/json-api-tests#stack)
 - [Setup](https://github.com/chrism/json-api-tests#setup)
 - [Testing Models](https://github.com/chrism/json-api-tests#testing-models)
-- [Creating a JSONAPI](https://github.com/chrism/json-api-tests#creating-a-jsonapi)
+- [Creating a JSONAPI response](https://github.com/chrism/json-api-tests#creating-a-jsonapi-response)
 - [Testing a JSONAPI model](https://github.com/chrism/json-api-tests#testing-a-jsonapi-model)
 - [Adding slugs to a Model](https://github.com/chrism/json-api-tests#adding-slugs-to-a-model)
 - [Using Slug for an id](https://github.com/chrism/json-api-tests#using-slug-for-an-id)
 - [Adding a has_many relationship](https://github.com/chrism/json-api-tests#adding-a-has_many-relationship)
-- [Customising a has many relationship](https://github.com/chrism/json-api-tests#customising-a-has-many-relationship)
+- [Customising a has_many relationship](https://github.com/chrism/json-api-tests#customising-a-has_many-relationship)
 - [A note about caching responses](https://github.com/chrism/json-api-tests#a-note-about-caching-responses)
 
 ## Introduction
@@ -136,7 +136,7 @@ RSpec.describe Schedule, type: :model do
 end
 ```
 
-## Creating a JSONAPI
+## Creating a JSONAPI response
 
 Using [JSONAPI::Resources](http://jsonapi-resources.com/)
 
@@ -604,7 +604,7 @@ RSpec.describe "ScheduledTracks", type: :request do
 end
 ```
 
-## Customising a has many relationship
+## Customising a has_many relationship
 
 To include the relationship side-loaded into the JSON response the JSONAPI convention is to include in the request an `include` parameter.
 
