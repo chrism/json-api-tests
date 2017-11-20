@@ -82,4 +82,63 @@ RSpec.describe "Schedules", type: :request do
       expect(json).to have_json_size(2).at_path("included")
     end
   end
+
+  describe "POST /api/v1/schedules" do
+    it "returns error if there is no content-type" do
+      post "/api/v1/schedules"
+      error_message = %({
+        "errors": [
+          {
+            "title": "Unsupported media type",
+            "detail": "All requests that create or update must use the 'application/vnd.api+json' Content-Type. This request specified 'application/x-www-form-urlencoded'.",
+            "code": "415",
+            "status": "415"
+          }
+        ]
+      })
+      expect(response).to have_http_status(415)
+      expect(response.body).to be_json_eql(error_message)
+    end
+
+    it "returns error if there is no name attribute" do
+      post_data = {
+        data: {
+          type: "schedules",
+          attributes: {}
+        }
+      }.to_json
+      post "/api/v1/schedules", params: post_data, headers: { 'Content-Type': 'application/vnd.api+json' }
+      error_message = %({
+        "errors": [
+          {
+            "title": "can't be blank",
+            "detail": "name - can't be blank",
+            "code": "100",
+            "source": {
+              "pointer": "/data/attributes/name"
+            },
+            "status": "422"
+          }
+        ]
+      })
+      expect(response).to have_http_status(422)
+      expect(response.body).to be_json_eql(error_message)
+    end
+
+    it "creates a new schedule if name is included" do
+      post_data = {
+        data: {
+          type: "schedules",
+          attributes: {
+            name: "Test 3"
+          }
+        }
+      }.to_json
+      post "/api/v1/schedules", params: post_data, headers: { 'Content-Type': 'application/vnd.api+json' }
+      expect(response).to have_http_status(201)
+      json = response.body
+      expect(json).to have_json_path("data")
+      expect(json).to be_json_eql(%("test-3")).at_path("data/id")
+    end
+  end
 end

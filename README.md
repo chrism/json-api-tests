@@ -15,6 +15,7 @@
 - [Side-loading data using the include URL parameter](https://github.com/chrism/json-api-tests#side-loading-data-using-the-include-url-parameter)
 - [A note about caching responses](https://github.com/chrism/json-api-tests#a-note-about-caching-responses)
 - [Testing customized has_many relationships](https://github.com/chrism/json-api-tests#testing-customized-has_many-relationships)
+- [Creating models and validation]()
 
 ## Introduction
 
@@ -895,3 +896,102 @@ describe "GET /api/v1/schedules/id?include=forthcoming-tracks" do
   end
 end
 ```
+
+## Creating models and validation
+
+Currently it is possible to create a `schedule` model without including a name attribute.
+
+```
+curl -X "POST" "http://0.0.0.0:3000/api/v1/schedules" \
+     -H 'Content-Type: application/vnd.api+json' \
+     -d $'{
+  "data": {
+    "type": "schedules",
+    "attributes": {}
+  }
+}'
+```
+
+Do this returns a model with `null` for the `id` and `name` attribute though.
+
+To prevent this from occuring use standard model validations.
+
+```ruby
+class Schedule < ApplicationRecord
+  #...
+  validates_presence_of :name
+end
+```
+
+Which JSONAPI:Resources uses to provide a useful JSON response.
+
+Writing some tests confirms this, it is worth noting that the content-type must be included as per the JSONAPI spec too.
+
+**spec/requests/schedules_spec.rb**
+```ruby
+require 'rails_helper'
+
+RSpec.describe "Schedules", type: :request do
+  #...
+  describe "POST /api/v1/schedules" do
+    it "returns error if there is no content-type" do
+      post "/api/v1/schedules"
+      error_message = %({
+        "errors": [
+          {
+            "title": "Unsupported media type",
+            "detail": "All requests that create or update must use the 'application/vnd.api+json' Content-Type. This request specified 'application/x-www-form-urlencoded'.",
+            "code": "415",
+            "status": "415"
+          }
+        ]
+      })
+      expect(response).to have_http_status(415)
+      expect(response.body).to be_json_eql(error_message)
+    end
+
+    it "returns error if there is no name attribute" do
+      post_data = {
+        data: {
+          type: "schedules",
+          attributes: {}
+        }
+      }.to_json
+      post "/api/v1/schedules", params: post_data, headers: { 'Content-Type': 'application/vnd.api+json' }
+      error_message = %({
+        "errors": [
+          {
+            "title": "can't be blank",
+            "detail": "name - can't be blank",
+            "code": "100",
+            "source": {
+              "pointer": "/data/attributes/name"
+            },
+            "status": "422"
+          }
+        ]
+      })
+      expect(response).to have_http_status(422)
+      expect(response.body).to be_json_eql(error_message)
+    end
+
+    it "creates a new schedule if name is included" do
+      post_data = {
+        data: {
+          type: "schedules",
+          attributes: {
+            name: "Test 3"
+          }
+        }
+      }.to_json
+      post "/api/v1/schedules", params: post_data, headers: { 'Content-Type': 'application/vnd.api+json' }
+      expect(response).to have_http_status(201)
+      json = response.body
+      expect(json).to have_json_path("data")
+      expect(json).to be_json_eql(%("test-3")).at_path("data/id")
+    end
+  end
+end
+```
+
+This demonstrates that `schedule` models can now be created successfully via the JSONAPI.
