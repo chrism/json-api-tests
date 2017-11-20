@@ -1,15 +1,15 @@
-# Testing JSONAPI
+# Test-driven JSONAPI development using Rails
 
 ## Contents
 
 - [Introduction](https://github.com/chrism/json-api-tests#introduction)
 - [Stack](https://github.com/chrism/json-api-tests#stack)
 - [Setup](https://github.com/chrism/json-api-tests#setup)
-- [Testing Models](https://github.com/chrism/json-api-tests#testing-models)
+- [Testing models](https://github.com/chrism/json-api-tests#testing-models)
 - [Creating a JSONAPI response](https://github.com/chrism/json-api-tests#creating-a-jsonapi-response)
 - [Testing a JSONAPI model](https://github.com/chrism/json-api-tests#testing-a-jsonapi-model)
-- [Adding slugs to a Model](https://github.com/chrism/json-api-tests#adding-slugs-to-a-model)
-- [Using Slug for an id](https://github.com/chrism/json-api-tests#using-slug-for-an-id)
+- [Adding a slug to a model](https://github.com/chrism/json-api-tests#adding-a-slug-to-a-model)
+- [Using a slug for an id](https://github.com/chrism/json-api-tests#using-a-slug-for-an-id)
 - [Adding a has_many relationship](https://github.com/chrism/json-api-tests#adding-a-has_many-relationship)
 - [Customising a has_many relationship](https://github.com/chrism/json-api-tests#customising-a-has_many-relationship)
 - [A note about caching responses](https://github.com/chrism/json-api-tests#a-note-about-caching-responses)
@@ -88,7 +88,7 @@ Finally delete the redundant `test` directory.
 
 `⇒ bin/rails db:create:all`
 
-## Testing Models
+## Testing models
 
 Generated model using generators
 
@@ -314,7 +314,7 @@ end
 
 These specs use some of those matchers to ensure that the JSON returned from the requests is correct.
 
-## Adding Slugs to a Model
+## Adding a slug to a model
 
 Using the [Friendly ID](https://github.com/norman/friendly_id/) gem to generate slugs instead of IDs.
 
@@ -351,7 +351,7 @@ Then run the migration.
 
 `⇒ bin/rails db:migrate`
 
-## Using Slug for an Id
+## Using a slug for an id
 
 These slugs can be used as the id of the JSONAPI models now, instead of the id integer.
 
@@ -865,5 +865,5 @@ Whilst important to know for production, it is simpler to begin development with
 
 ```
 ⇒  bin/rails dev:cache
-Development mode is now being cached.
+Development mode is no longer being cached.
 ```
