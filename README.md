@@ -1010,4 +1010,4 @@ RSpec.describe "Schedules", type: :request do
 end
 ```
 
-Now `schedule` models can now be created successfully via the JSONAPI, ensuring that they have a name attribute.
+Now `schedule` models can be created successfully via the JSONAPI, ensuring there is a valid name attribute.
