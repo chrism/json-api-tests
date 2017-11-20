@@ -1,23 +1,38 @@
 # Testing JSONAPI
 
+## Contents
+
+- [Introduction](https://github.com/chrism/json-api-tests#introduction)
+- [Stack](https://github.com/chrism/json-api-tests#stack)
+- [Setup](https://github.com/chrism/json-api-tests#setup)
+- [Testing Models](https://github.com/chrism/json-api-tests#testing-models)
+- [Creating a JSONAPI](https://github.com/chrism/json-api-tests#creating-a-jsonapi)
+- [Testing a JSONAPI model](https://github.com/chrism/json-api-tests#testing-a-jsonapi-model)
+- [Adding slugs to a Model](https://github.com/chrism/json-api-tests#adding-slugs-to-a-model)
+- [Using Slug for an id](https://github.com/chrism/json-api-tests#using-slug-for-an-id)
+- [Adding a has_many relationship](https://github.com/chrism/json-api-tests#adding-a-has_many-relationship)
+- [Customising a has many relationship](https://github.com/chrism/json-api-tests#customising-a-has-many-relationship)
+- [A note about caching responses](https://github.com/chrism/json-api-tests#a-note-about-caching-responses)
+
 ## Introduction
 
 This is a reference repo to aid with the comprehension of working with JSONAPI and the JSONAPI:Resources gem.
 
 ## Stack
 
-- Rails 5.1.3 (postgres and API)
-- RSpec
+- [Rails 5.1.3](http://rubyonrails.org/)
+- [JSONAPI::Resources](http://jsonapi-resources.com/)
+- [RSpec](https://relishapp.com/rspec)
 
 ## Setup
 
 ### Install Rails project
 
-`rails new json-api-tests --api --database=postgresql`
+`⇒ rails new json-api-tests --api --database=postgresql`
 
 ### Install RSpec & spring commands (for binstubs)
 
-Gemfile
+**Gemfile**
 ```ruby
 group :development, :test do
   gem 'rspec-rails', '~> 3.7', '>= 3.7.1'
@@ -28,19 +43,21 @@ group :development do
 end
 ```
 
-`bundle`
-`bin/rails generate rspec:install`
-`bundle exec spring binstub rspec`
+```
+⇒ bundle
+⇒ bin/rails generate rspec:install
+⇒ bundle exec spring binstub rspec
+```
 
 Customise RSpec a little
 
-.rspec
+_.rspec_
 ```ruby
 --require spec_helper
 --format documentation
 ```
 
-config/application.rb
+**config/application.rb**
 ```ruby
 module JsonApiTests
   class Application < Rails::Application
@@ -69,15 +86,15 @@ Finally delete the redundant `test` directory.
 
 ### Setup Databases
 
-`bin/rails db:create:all`
+`⇒ bin/rails db:create:all`
 
 ## Testing Models
 
 Generated model using generators
 
-`rails g model schedule name current_position:integer`
+`⇒ rails g model schedule name current_position:integer`
 
-Add default value into Migration
+Add default value into generated Migration file
 
 ```ruby
 class CreateSchedules < ActiveRecord::Migration[5.1]
@@ -94,11 +111,11 @@ end
 
 Then need to make sure database is prepared with
 
-`bin/rails db:test:prepare`
+`⇒ bin/rails db:test:prepare`
 
 Now Rspec tests should pass like
 
-spec/models/schedule_spec.rb
+**spec/models/schedule_spec.rb**
 ```ruby
 require 'rails_helper'
 
@@ -125,39 +142,39 @@ Using [JSONAPI::Resources](http://jsonapi-resources.com/)
 
 Install latest version with
 
-Gemfile
+**Gemfile**
 ```ruby
 # Latest alpha from master on 14th November 2017
 gem 'jsonapi-resources', :git => 'https://github.com/cerebris/jsonapi-resources.git', :ref => '3a02a4d'
 ```
 
-`bundle`
+`⇒ bundle`
 
 Then we create a Resource and Controller as per the guides.
 
 It is good practice to namespace the API, which you can do when using the generators.
 
-`rails g jsonapi:controller api/v1/schedule`
-`rails g jsonapi:resource api/v1/schedule`
+```
+⇒ rails g jsonapi:controller api/v1/schedule
+⇒ rails g jsonapi:resource api/v1/schedule
+```
 
 The resource also needs to be added to the routes.
 
-config/routes.rb
+**config/routes.rb**
 ```ruby
 Rails.application.routes.draw do
-
   namespace :api do
     namespace :v1 do
       jsonapi_resources :schedules
     end
   end
-
 end
 ```
 
 Tests should still pass when running
 
-`bin/rspec`
+`⇒ bin/rspec`
 
 And hitting the URL should now return a valid JSONAPI response (the [JSON API](http://jsonapi.org/) spec requires request to [include the `Content-type: application/vnd.api+json` in the header](http://jsonapi.org/format/#content-negotiation-clients)).
 
@@ -167,12 +184,15 @@ And hitting the URL should now return a valid JSONAPI response (the [JSON API](h
 
 First lets see what a valid response looks like with a model
 
-`bin/rails c`
-`Schedule.create(name: 'Test')`
+```
+⇒ bin/rails c
+> Schedule.create(name: 'Test')
+> exit
+```
 
-Then hitting the same URL should return the model in an array.
+Now the same URL should return the model in an array.
 
-I like to use an application called [Paw](https://paw.cloud/) to investigate how an API works, it makes it very simple to test requests and their responses in easy to view formats.
+[Paw](https://paw.cloud/) is a great 3rd party application to investigate how an API works. It makes it very simple to test requests and their responses in easy to view formats.
 
 In this instance the response follows the standard JSON API format with a top-level member of `data`, followed in this instance with an array of `schedule` models (in this case one).
 
@@ -196,7 +216,7 @@ To get additional data attributes are used by JSONAPI:Resources, which match the
 
 Adding to the Schedule resource
 
-app/resources/api/v1/schedule_resource.rb
+**app/resources/api/v1/schedule_resource.rb**
 ```ruby
 class Api::V1::ScheduleResource < JSONAPI::Resource
   attributes :name, :current_position
@@ -229,11 +249,11 @@ RSpec includes [request specs](https://relishapp.com/rspec/rspec-rails/docs/requ
 
 Generate a request spec for schedules with
 
-`bin/rails g rspec:request schedules`
+`⇒ bin/rails g rspec:request schedules`
 
 There is another gem called [JSON RSpec](https://github.com/collectiveidea/json_spec) which provides some useful RSpec matchers (among other things).
 
-Gemfile
+**Gemfile**
 ```ruby
 group :development, :test do
   ...
@@ -241,7 +261,7 @@ group :development, :test do
 end
 ```
 
-spec/requests/schedules_spec.rb
+**spec/requests/schedules_spec.rb**
 ```ruby
 require 'rails_helper'
 
@@ -294,28 +314,28 @@ end
 
 These specs use some of those matchers to ensure that the JSON returned from the requests is correct.
 
-## Adding slugs to a Model
+## Adding Slugs to a Model
 
 Using the [Friendly ID](https://github.com/norman/friendly_id/) gem to generate slugs instead of IDs.
 
-Gemfile
+**Gemfile**
 ```ruby
 gem 'friendly_id', '~> 5.1'
 ```
 
 Then follow the guide by installing the configuration file
 
-`rails generate friendly_id`
+`⇒ rails generate friendly_id`
 
 And running the migration
 
-`rails db:migrate`
+`⇒ rails db:migrate`
 
 (May need to add the version number to migration file [see the note](https://github.com/norman/friendly_id/#usage) in the install instructions)
 
 Now, using the gem to update the model to use a slug from the name.
 
-app/models/schedule.rb
+**app/models/schedule.rb**
 ```ruby
 class Schedule < ApplicationRecord
   extend FriendlyId
@@ -325,19 +345,19 @@ end
 
 There needs to be a slug column in the Schedules table too.
 
-`rails g migration AddSlugToSchedules slug:string:uniq`
+`⇒ rails g migration AddSlugToSchedules slug:string:uniq`
 
 Then run the migration.
 
-`bin/rails db:migrate`
+`⇒ bin/rails db:migrate`
 
-## Using Slug for an id
+## Using Slug for an Id
 
 These slugs can be used as the id of the JSONAPI models now, instead of the id integer.
 
 Here is a test in the schedules request spec to test for the use of the slug as the id.
 
-spec/requests/schedules_spec.rb
+**spec/requests/schedules_spec.rb**
 ```ruby
 describe "GET /api/v1/schedules/id" do
   it "should use the slug as the id" do
@@ -355,7 +375,7 @@ end
 
 To make this test pass, the schedules resource must use the slug as the `primary_key` as [documented](http://jsonapi-resources.com/v0.10/guide/resources.html#Primary-Key).
 
-app/resources/api/v1/schedule_resource.rb
+**app/resources/api/v1/schedule_resource.rb**
 ```ruby
 class Api::V1::ScheduleResource < JSONAPI::Resource
   primary_key :slug
@@ -366,11 +386,11 @@ end
 
 The model now uses the slug as the primary key.
 
-## Adding a has_many relationship
+## Adding a has many relationship
 
 In this example a schedule can have many scheduled_tracks. Each scheduled_track belongs to a schedule.
 
-`bin/rails g model scheduled_track position:integer state schedule:belongs_to`
+`⇒ bin/rails g model scheduled_track position:integer state schedule:belongs_to`
 
 The state should have a default value of `queued`, so this can be added to the migration before it is run.
 
@@ -390,14 +410,14 @@ end
 
 Then add a JSONAPI resource and controller for `scheduled_tracks`
 
-```bash
-bin/rails g jsonapi:resource api/v1/scheduled_track
-bin/rails g jsonapi:controller api/v1/scheduled_track
+```
+⇒ bin/rails g jsonapi:resource api/v1/scheduled_track
+⇒ bin/rails g jsonapi:controller api/v1/scheduled_track
 ```
 
 To include the has many relationship at it's most basic the relationship can be added to the `schedule` model.
 
-app/models/schedule.rb
+**app/models/schedule.rb**
 ```ruby
 class Schedule < ApplicationRecord
   #...
@@ -407,6 +427,7 @@ end
 
 and the `schedule` resource
 
+**app/resources/api/v1/schedule_resource.rb**
 ```ruby
 class Api::V1::ScheduleResource < JSONAPI::Resource
   #...
@@ -416,11 +437,11 @@ end
 
 By adding a couple of `schedule_track` models via the console to the development database these API relationships can be reviewed.
 
-```bash
-bin/rails c
-ScheduledTrack.create(position: 1, schedule: Schedule.first)
-ScheduledTrack.create(position: 2, schedule: Schedule.first)
-exit
+```
+⇒ bin/rails c
+> ScheduledTrack.create(position: 1, schedule: Schedule.first)
+> ScheduledTrack.create(position: 2, schedule: Schedule.first)
+> exit
 ```
 
 Now, a request to the API for a schedule will include the schedule_tracks too.
@@ -457,7 +478,7 @@ Following the `self` link works but the `related` link leads to an error.
 
 This can be resolved by also including the `schedule_tracks` to the routes configuration.
 
-config/routes.rb
+**config/routes.rb**
 ```ruby
 Rails.application.routes.draw do
   namespace :api do
@@ -487,7 +508,7 @@ This now makes it possible to follow the links to a specific `schedule_track`
 
 As before the way to include additional information for the model is to add attributes to the resource.
 
-app/resources/api/v1/scheduled_track_resource.rb
+**app/resources/api/v1/scheduled_track_resource.rb**
 ```ruby
 class Api::V1::ScheduledTrackResource < JSONAPI::Resource
   attributes :position, :state
@@ -516,7 +537,7 @@ Writing some RSpec tests once again ensure the correct responses.
 
 First some simple model specs
 
-spec/models/scheduled_track_spec.rb
+**spec/models/scheduled_track_spec.rb**
 ```ruby
 require 'rails_helper'
 
@@ -543,7 +564,7 @@ end
 
 Then some additional specs to the request specs to ensure the `schedule` includes the links to the `scheduled_tracks`.
 
-spec/requests/schedules_spec.rb
+**spec/requests/schedules_spec.rb**
 ```ruby
 it "includes the scheduled tracks links" do
   schedule = Schedule.create(name: "Test")
@@ -560,8 +581,9 @@ end
 
 And create a scheduled_track request spec
 
-`bin/rails g rspec:request scheduled_tracks`
+`⇒ bin/rails g rspec:request scheduled_tracks`
 
+**spec/requests/scheduled_tracks_spec.rb**
 ```ruby
 require 'rails_helper'
 
@@ -682,7 +704,7 @@ This is very powerful, but sometimes you only want to include a specific result 
 
 There are several ways of doing this, for example—to only show scheduled-tracks which have not been played first add a scope to the `Schedule` model
 
-app/models/schedule.rb
+**app/models/schedule.rb**
 ```ruby
 class Schedule < ApplicationRecord
   #...
@@ -692,6 +714,7 @@ end
 
 Then update the resource to include this relationship
 
+**app/resources/api/v1/schedule_resource.rb**
 ```ruby
 class Api::V1::ScheduleResource < JSONAPI::Resource
   #...
@@ -773,7 +796,7 @@ JSONAPI:Resources [now includes the ability to cache responses](http://jsonapi-r
 
 To see this working first create an initializer
 
-config/initializers/jsonapi_resources.rb
+**config/initializers/jsonapi_resources.rb**
 ```ruby
 JSONAPI.configure do |config|
   config.resource_cache = Rails.cache
@@ -782,7 +805,7 @@ end
 
 Then add `caching` to the resources
 
-app/resources/api/v1/schedule_resource.rb
+**app/resources/api/v1/schedule_resource.rb**
 ```ruby
 class Api::V1::ScheduleResource < JSONAPI::Resource
   caching
@@ -790,7 +813,7 @@ class Api::V1::ScheduleResource < JSONAPI::Resource
 end
 ```
 
-app/resources/api/v1/scheduled_track_resource.rb
+**app/resources/api/v1/scheduled_track_resource.rb**
 ```ruby
 class Api::V1::ScheduledTrackResource < JSONAPI::Resource
   caching
@@ -800,32 +823,32 @@ end
 
 In development mode caching isn't enabled by default, so it needs to be enabled.
 
-```bash
+```
 ⇒  bin/rails dev:cache
 Development mode is now being cached.
 ```
 
 After restarting the server the first response becomes cached for subsequent requests.
 
-First request
+For the first request the queries are made...
 
-```bash
+```
 Started GET "/api/v1/schedules/test?include=forthcoming-tracks" for 127.0.0.1 at 2017-11-20 15:13:55 +0100
    (1.0ms)  SELECT "schema_migrations"."version" FROM "schema_migrations" ORDER BY "schema_migrations"."version" ASC
 Processing by Api::V1::SchedulesController#show as HTML
   Parameters: {"include"=>"forthcoming-tracks", "id"=>"test"}
    (0.6ms)  SELECT schedules.slug, schedules.updated_at FROM "schedules" WHERE "schedules"."slug" = $1  [["slug", "test"]]
    (7.2ms)  SELECT schedules.slug, scheduled_tracks.id, scheduled_tracks.updated_at FROM "schedules" INNER JOIN "scheduled_tracks" ON "scheduled_tracks"."schedule_id" = "schedules"."id" AND "scheduled_tracks"."state" IN ('playing', 'next', 'queued') WHERE "schedules"."slug" = 'test' ORDER BY scheduled_tracks.id asc
-  **Schedule Load (0.5ms)  SELECT "schedules".* FROM "schedules" WHERE "schedules"."slug" = 'test'**
-  **ScheduledTrack Load (6.4ms)  SELECT "scheduled_tracks".* FROM "scheduled_tracks" WHERE "scheduled_tracks"."id" IN (3, 4)**
+  Schedule Load (0.5ms)  SELECT "schedules".* FROM "schedules" WHERE "schedules"."slug" = 'test'
+  ScheduledTrack Load (6.4ms)  SELECT "scheduled_tracks".* FROM "scheduled_tracks" WHERE "scheduled_tracks"."id" IN (3, 4)
   Rendering text template
   Rendered text template (0.0ms)
 Completed 200 OK in 112ms (Views: 5.8ms | ActiveRecord: 51.0ms)
 ```
 
-Subsequent requests
+But for subsequent requests the cache is used...
 
-```bash
+```
 Started GET "/api/v1/schedules/test?include=forthcoming-tracks" for 127.0.0.1 at 2017-11-20 15:14:04 +0100
 Processing by Api::V1::SchedulesController#show as HTML
   Parameters: {"include"=>"forthcoming-tracks", "id"=>"test"}
@@ -838,9 +861,9 @@ Completed 200 OK in 11ms (Views: 0.3ms | ActiveRecord: 2.6ms)
 
 This is a very powerful way of ensuring a fast, responsive API server with minimal effort required.
 
-Whilst important to know for production, it is simpler to begin developmet without the additional cognitive overhead of possible caching issues.
+Whilst important to know for production, it is simpler to begin development without the additional cognitive overhead of possible caching issues.
 
-```bash
+```
 ⇒  bin/rails dev:cache
 Development mode is now being cached.
 ```
