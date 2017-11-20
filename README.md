@@ -52,7 +52,7 @@ end
 Customise RSpec a little
 
 **.rspec**
-```ruby
+```
 --require spec_helper
 --format documentation
 ```
