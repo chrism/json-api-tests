@@ -766,3 +766,81 @@ Make sure to update the `include` parameter too to `forthcoming-tracks` and the 
   ]
 }
 ```
+
+## A note about caching responses
+
+JSONAPI:Resources [now includes the ability to cache responses](http://jsonapi-resources.com/v0.10/guide/resource_caching.html).
+
+To see this working first create an initializer
+
+config/initializers/jsonapi_resources.rb
+```ruby
+JSONAPI.configure do |config|
+  config.resource_cache = Rails.cache
+end
+```
+
+Then add `caching` to the resources
+
+app/resources/api/v1/schedule_resource.rb
+```ruby
+class Api::V1::ScheduleResource < JSONAPI::Resource
+  caching
+  #...
+end
+```
+
+app/resources/api/v1/scheduled_track_resource.rb
+```ruby
+class Api::V1::ScheduledTrackResource < JSONAPI::Resource
+  caching
+  #...
+end
+```
+
+In development mode caching isn't enabled by default, so it needs to be enabled.
+
+```bash
+⇒  bin/rails dev:cache
+Development mode is now being cached.
+```
+
+After restarting the server the first response becomes cached for subsequent requests.
+
+First request
+
+```bash
+Started GET "/api/v1/schedules/test?include=forthcoming-tracks" for 127.0.0.1 at 2017-11-20 15:13:55 +0100
+   (1.0ms)  SELECT "schema_migrations"."version" FROM "schema_migrations" ORDER BY "schema_migrations"."version" ASC
+Processing by Api::V1::SchedulesController#show as HTML
+  Parameters: {"include"=>"forthcoming-tracks", "id"=>"test"}
+   (0.6ms)  SELECT schedules.slug, schedules.updated_at FROM "schedules" WHERE "schedules"."slug" = $1  [["slug", "test"]]
+   (7.2ms)  SELECT schedules.slug, scheduled_tracks.id, scheduled_tracks.updated_at FROM "schedules" INNER JOIN "scheduled_tracks" ON "scheduled_tracks"."schedule_id" = "schedules"."id" AND "scheduled_tracks"."state" IN ('playing', 'next', 'queued') WHERE "schedules"."slug" = 'test' ORDER BY scheduled_tracks.id asc
+  **Schedule Load (0.5ms)  SELECT "schedules".* FROM "schedules" WHERE "schedules"."slug" = 'test'**
+  **ScheduledTrack Load (6.4ms)  SELECT "scheduled_tracks".* FROM "scheduled_tracks" WHERE "scheduled_tracks"."id" IN (3, 4)**
+  Rendering text template
+  Rendered text template (0.0ms)
+Completed 200 OK in 112ms (Views: 5.8ms | ActiveRecord: 51.0ms)
+```
+
+Subsequent requests
+
+```bash
+Started GET "/api/v1/schedules/test?include=forthcoming-tracks" for 127.0.0.1 at 2017-11-20 15:14:04 +0100
+Processing by Api::V1::SchedulesController#show as HTML
+  Parameters: {"include"=>"forthcoming-tracks", "id"=>"test"}
+   (2.1ms)  SELECT schedules.slug, schedules.updated_at FROM "schedules" WHERE "schedules"."slug" = $1  [["slug", "test"]]
+   (0.5ms)  SELECT schedules.slug, scheduled_tracks.id, scheduled_tracks.updated_at FROM "schedules" INNER JOIN "scheduled_tracks" ON "scheduled_tracks"."schedule_id" = "schedules"."id" AND "scheduled_tracks"."state" IN ('playing', 'next', 'queued') WHERE "schedules"."slug" = 'test' ORDER BY scheduled_tracks.id asc
+  Rendering text template
+  Rendered text template (0.0ms)
+Completed 200 OK in 11ms (Views: 0.3ms | ActiveRecord: 2.6ms)
+```
+
+This is a very powerful way of ensuring a fast, responsive API server with minimal effort required.
+
+Whilst important to know for production, it is simpler to begin developmet without the additional cognitive overhead of possible caching issues.
+
+```bash
+⇒  bin/rails dev:cache
+Development mode is now being cached.
+```
