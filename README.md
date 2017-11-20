@@ -15,7 +15,7 @@
 - [Side-loading data using the include URL parameter](https://github.com/chrism/json-api-tests#side-loading-data-using-the-include-url-parameter)
 - [A note about caching responses](https://github.com/chrism/json-api-tests#a-note-about-caching-responses)
 - [Testing customized has_many relationships](https://github.com/chrism/json-api-tests#testing-customized-has_many-relationships)
-- [Creating models and validation]()
+- [Creating models and validation](https://github.com/chrism/json-api-tests#creating-models-and-validation)
 
 ## Introduction
 
@@ -912,9 +912,9 @@ curl -X "POST" "http://0.0.0.0:3000/api/v1/schedules" \
 }'
 ```
 
-Do this returns a model with `null` for the `id` and `name` attribute though.
+But this returns a model with `null` for the `id` and `name` attribute which is a major issue.
 
-To prevent this from occuring use standard model validations.
+Standard ActiveRecord model validations can prevent this from occurring.
 
 ```ruby
 class Schedule < ApplicationRecord
@@ -923,9 +923,25 @@ class Schedule < ApplicationRecord
 end
 ```
 
-Which JSONAPI:Resources uses to provide a useful JSON response.
+JSONAPI:Resources uses these validations to provide meaningful JSON error responses.
 
-Writing some tests confirms this, it is worth noting that the content-type must be included as per the JSONAPI spec too.
+```
+{
+  "errors": [
+    {
+      "title": "can't be blank",
+      "detail": "name - can't be blank",
+      "code": "100",
+      "source": {
+        "pointer": "/data/attributes/name"
+      },
+      "status": "422"
+    }
+  ]
+}
+```
+
+Writing tests also demonstrate that a content-type of `'application/vnd.api+json'` must be used along with the correct JSON payload. Details are all available from the [JSONAPI specification](http://jsonapi.org/format/#conventions).
 
 **spec/requests/schedules_spec.rb**
 ```ruby
@@ -994,4 +1010,4 @@ RSpec.describe "Schedules", type: :request do
 end
 ```
 
-This demonstrates that `schedule` models can now be created successfully via the JSONAPI.
+Now `schedule` models can now be created successfully via the JSONAPI, ensuring that they have a name attribute.
