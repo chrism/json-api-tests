@@ -12,9 +12,9 @@
 - [Using a slug for an id](https://github.com/chrism/json-api-tests#using-a-slug-for-an-id)
 - [Adding a has_many relationship](https://github.com/chrism/json-api-tests#adding-a-has_many-relationship)
 - [Customising a has_many relationship](https://github.com/chrism/json-api-tests#customising-a-has_many-relationship)
-- [Side-loading data using the include URL parameter]
+- [Side-loading data using the include URL parameter](https://github.com/chrism/json-api-tests#side-loading-data-using-the-include-url-parameter)
 - [A note about caching responses](https://github.com/chrism/json-api-tests#a-note-about-caching-responses)
-- [Testing customized has_many relationships]
+- [Testing customized has_many relationships](https://github.com/chrism/json-api-tests#testing-customized-has_many-relationships)
 
 ## Introduction
 
