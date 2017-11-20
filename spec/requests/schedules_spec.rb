@@ -69,4 +69,17 @@ RSpec.describe "Schedules", type: :request do
       expect(json).to be_json_eql(%("#{url_prepend}/scheduled-tracks")).at_path("data/relationships/scheduled-tracks/links/related")
     end
   end
+
+  describe "GET /api/v1/schedules/id?include=forthcoming-tracks" do
+    it "includes forthcoming tracks relationship and data" do
+      schedule = Schedule.create(name: "Test")
+      ScheduledTrack.create(position: 1, state: "played", schedule: schedule)
+      ScheduledTrack.create(position: 2, state: "playing", schedule: schedule)
+      ScheduledTrack.create(position: 3, schedule: schedule)
+      get "/api/v1/schedules/test?include=forthcoming-tracks"
+      json = response.body
+      expect(json).to have_json_path("data/relationships/forthcoming-tracks")
+      expect(json).to have_json_size(2).at_path("included")
+    end
+  end
 end

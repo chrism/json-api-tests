@@ -12,7 +12,9 @@
 - [Using a slug for an id](https://github.com/chrism/json-api-tests#using-a-slug-for-an-id)
 - [Adding a has_many relationship](https://github.com/chrism/json-api-tests#adding-a-has_many-relationship)
 - [Customising a has_many relationship](https://github.com/chrism/json-api-tests#customising-a-has_many-relationship)
+- [Side-loading data using the include URL parameter]
 - [A note about caching responses](https://github.com/chrism/json-api-tests#a-note-about-caching-responses)
+- [Testing customized has_many relationships]
 
 ## Introduction
 
@@ -722,7 +724,9 @@ class Api::V1::ScheduleResource < JSONAPI::Resource
 end
 ```
 
-Make sure to update the `include` parameter too to `forthcoming-tracks` and the results will now only include the `ActiveQuery` results.
+## Side-loading data using the include URL parameter
+
+Using the `include` URL parameter with a value of `forthcoming-tracks` includes the data in the standardised JSONAPI format.
 
 `curl "http://0.0.0.0:3000/api/v1/schedules/test?include=forthcoming-tracks" -H 'Content-Type: application/vnd.api+json'`
 
@@ -789,6 +793,8 @@ Make sure to update the `include` parameter too to `forthcoming-tracks` and the 
   ]
 }
 ```
+
+Including data is this way can be very useful, often referred to as 'side-loading', to reduce the number of individual requests necessary to retrieve data.
 
 ## A note about caching responses
 
@@ -866,4 +872,26 @@ Whilst important to know for production, it is simpler to begin development with
 ```
 ⇒  bin/rails dev:cache
 Development mode is no longer being cached.
+```
+
+## Testing customized has_many relationships
+
+Using a similar approach RSpec can ensure that the response matches the customized relationship.
+
+In this test there should be only two forthcoming tracks (the third scheduled-track added is in state "queued" by default) and the relationship data included.
+
+**spec/requests/schedules_spec.rb**
+```ruby
+describe "GET /api/v1/schedules/id?include=forthcoming-tracks" do
+  it "includes forthcoming tracks relationship and data" do
+    schedule = Schedule.create(name: "Test")
+    ScheduledTrack.create(position: 1, state: "played", schedule: schedule)
+    ScheduledTrack.create(position: 2, state: "playing", schedule: schedule)
+    ScheduledTrack.create(position: 3, schedule: schedule)
+    get "/api/v1/schedules/test?include=forthcoming-tracks"
+    json = response.body
+    expect(json).to have_json_path("data/relationships/forthcoming-tracks")
+    expect(json).to have_json_size(2).at_path("included")
+  end
+end
 ```
